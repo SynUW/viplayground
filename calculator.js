@@ -2,7 +2,6 @@ const PRESETS = {
   NDVI: '(B8-B4)/(B8+B4)',
   EVI: '2.5*(B8-B4)/(B8+6*B4-7.5*B2+1)',
   ARVI: '(B8-(2*B4-B2))/(B8+(2*B4-B2))',
-  SARVI: '1.5*(B8-(2*B4-B2))/(B8+(2*B4-B2)+0.5)',
   AFRI: '(B8-0.66*B11)/(B8+0.66*B11)',
   SAVI: '1.5*(B8-B4)/(B8+B4+0.5)',
   NDRE: '(B8A-B5)/(B8A+B5)',
@@ -11,7 +10,7 @@ const PRESETS = {
   MSAVI2: '0.5*(2*B8+1-sqrt((2*B8+1)^2-8*(B8-B4)))',
   OSAVI: '(B8-B4)/(B8+B4+0.16)',
 };
-const ATMOSPHERIC_PRESETS = ['NDVI','EVI','ARVI','SARVI','AFRI'];
+const ATMOSPHERIC_PRESETS = ['NDVI','EVI','ARVI','AFRI'];
 const BANDS = ['B2','B3','B4','B5','B6','B7','B8','B8A','B11','B12'];
 const GROWTH = { B2:-.004,B3:-.006,B4:-.030,B5:-.012,B6:.035,B7:.055,B8:.070,B8A:.068,B11:-.047,B12:-.040 };
 const WAVELENGTH_NM = { B2:492,B3:560,B4:665,B5:705,B6:740,B7:783,B8:842,B8A:865,B11:1610,B12:2190 };
