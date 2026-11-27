@@ -13,16 +13,13 @@ const PRESETS = {
 const ATMOSPHERIC_PRESETS = ['NDVI','EVI','ARVI','AFRI'];
 const BANDS = ['B2','B3','B4','B5','B6','B7','B8','B8A','B11','B12'];
 const GROWTH = { B2:-.004,B3:-.006,B4:-.030,B5:-.012,B6:.035,B7:.055,B8:.070,B8A:.068,B11:-.047,B12:-.040 };
-const WAVELENGTH_NM = { B2:492,B3:560,B4:665,B5:705,B6:740,B7:783,B8:842,B8A:865,B11:1610,B12:2190 };
-// Illustrative effective water-vapour absorption per added centimetre, not fitted to MSI response curves.
-const WATER_K = { B2:.0005,B3:.0005,B4:.001,B5:.0015,B6:.002,B7:.003,B8:.005,B8A:.007,B11:.018,B12:.025 };
 const LATE = { B4:.012,B5:.009,B11:.015,B12:.012 };
 
-let meta, bandData, vegetation, formulaFn, baseValues, scenarioValues, baseStats, scenarioStats, scale;
+let meta, bandData, atmosphereLut, vegetation, formulaFn, baseValues, scenarioValues, baseStats, scenarioStats, scale;
 let currentName = 'NDVI';
 let displayMode = 'index';
 const sortedBandCache = {};
-let scenarioState = { aod:0, water:0, growth:0, late:false, optics:{} };
+let scenarioState = { aod:0.1, water:2.5, growth:0, late:false, optics:{} };
 let updateTimer;
 const $ = selector => document.querySelector(selector);
 
@@ -124,9 +121,36 @@ function readBand(name, pixel, scenario) {
   if (!scenario || !Number.isFinite(original)) return original;
   const grow = vegetation[pixel] ? scenarioState.growth : 0;
   const late = vegetation[pixel] && scenarioState.late ? (LATE[name] || 0) : 0;
-  const surface = Math.max(0, original + GROWTH[name]*grow + late);
-  const { aerosolTransmission, waterTransmission, pathReflectance } = scenarioState.optics[name];
-  return waterTransmission * (surface * aerosolTransmission + pathReflectance);
+  const surface = Math.min(1, Math.max(0, original + GROWTH[name]*grow + late));
+  const { path, transmission, spherical } = scenarioState.optics[name];
+  return path + transmission * surface / (1 - spherical * surface);
+}
+
+function axisWeights(nodes, value) {
+  const last = nodes.length - 1;
+  if (value <= nodes[0]) return [0, 0, 0];
+  if (value >= nodes[last]) return [last, last, 0];
+  let upper = 1;
+  while (nodes[upper] < value) upper++;
+  const lower = upper - 1;
+  return [lower, upper, (value - nodes[lower]) / (nodes[upper] - nodes[lower])];
+}
+
+function interpolateOptics(profile, aod, water) {
+  const [a0,a1,at] = axisWeights(atmosphereLut.aod_nodes,aod);
+  const [w0,w1,wt] = axisWeights(atmosphereLut.water_cm_nodes,water);
+  const grid = atmosphereLut.coefficients[profile];
+  const optics = {};
+  BANDS.forEach((name,band) => {
+    const sample = (a,w,coefficient) => grid[a][w][band][coefficient];
+    const blend = coefficient => {
+      const low = sample(a0,w0,coefficient)*(1-wt) + sample(a0,w1,coefficient)*wt;
+      const high = sample(a1,w0,coefficient)*(1-wt) + sample(a1,w1,coefficient)*wt;
+      return low*(1-at) + high*at;
+    };
+    optics[name] = { path:blend(0), transmission:blend(1), spherical:blend(2) };
+  });
+  return optics;
 }
 
 function readScenarioState() {
@@ -138,21 +162,11 @@ function readScenarioState() {
   const shift = { baseline:0, early:-.70, peak:.45, late:-.80 }[phase];
   const growth = Math.max(-1, Math.min(1, ((+$('#vigor').value - 50)/50)*.65 + shift));
   const smoke = $('#aerosolType').value === 'smoke';
-  const alpha = smoke ? 1.8 : 1.3;
-  const pathStrength = smoke ? .09 : .14;
-  const optics = {};
-  for (const name of BANDS) {
-    const wavelength = WAVELENGTH_NM[name];
-    const tau = aod * Math.pow(wavelength / 550, -alpha);
-    const aerosolTransmission = Math.exp(-1.5 * tau);
-    const waterTransmission = Math.exp(-WATER_K[name] * water);
-    const pathReflectance = pathStrength * (1 - aerosolTransmission) * Math.pow(550 / wavelength, .2);
-    optics[name] = { aerosolTransmission, waterTransmission, pathReflectance };
-  }
+  const optics = interpolateOptics(smoke ? 'smoke' : 'haze', aod, water);
   scenarioState = { aod, water, growth, late:phase==='late', optics };
   $('#atmosNote').textContent = aod >= 2
-    ? '浓烟可能遮蔽地表：此时指数主要反映假设的烟雾观测条件，不能可靠解释植被。'
-    : aod === 0 ? 'AOD 为 0 时，选择普通霾或野火烟雾不会改变结果。' : '当前是对输入影像额外叠加的假设大气影响。';
+    ? '高 AOD 时地表信号可能被遮蔽，植被指数难以解释。'
+    : '当前反射率由 6S 大气模型计算。';
 }
 
 function calculatePixels(fn, scenario) {
@@ -260,8 +274,8 @@ function drawMap() {
   } else $('#indexRamp').style.background = '';
   $('#result-title').textContent = `${currentName} 计算结果`;
   canvas.setAttribute('aria-label', `${currentName} 指数地图`);
-  $('#resultSubtitle').textContent = scenario ? '情景结果 · 教学模拟' : '原始影像逐像元计算';
-  $('#modeBadge').textContent = scenario ? '教学情景模拟' : '真实影像计算';
+  $('#resultSubtitle').textContent = scenario ? '6S 模拟观测' : '输入地表反射率';
+  $('#modeBadge').textContent = scenario ? '6S 模拟' : '输入影像计算';
   $('#modeBadge').classList.toggle('sim', scenario);
   $('#validCount').textContent = `有效像元：${(scenario ? scenarioStats.count : baseStats.count).toLocaleString()} / ${(meta.width*meta.height).toLocaleString()}。`;
   drawHistogram();
@@ -299,7 +313,7 @@ function drawRgb() {
   context.putImageData(image,0,0);
   $('#result-title').textContent = `${simulated ? '情景影像' : '输入影像'} · 波段组合`;
   $('#resultSubtitle').textContent = `R ${names[0]} · G ${names[1]} · B ${names[2]}`;
-  $('#modeBadge').textContent = simulated ? '教学情景模拟' : '输入波段';
+  $('#modeBadge').textContent = simulated ? '6S 模拟' : '输入波段';
   $('#modeBadge').classList.toggle('sim', simulated);
   canvas.setAttribute('aria-label', `${simulated ? '情景' : '输入'}影像波段组合：红色 ${names[0]}，绿色 ${names[1]}，蓝色 ${names[2]}`);
   $('#stretchLowOut').textContent = `${lowPercent}%`;
@@ -406,7 +420,7 @@ function initControls() {
   document.querySelectorAll('input[name="view"]').forEach(radio => radio.addEventListener('change', drawMap));
   document.querySelectorAll('input[name="rgbSource"]').forEach(radio => radio.addEventListener('change', drawRgb));
   $('#reset').addEventListener('click', () => {
-    $('#aerosolType').value='haze'; $('#aerosol').value=0; $('#water').value=0; $('#vigor').value=50; $('#phase').value='baseline';
+    $('#aerosolType').value='haze'; $('#aerosol').value=.1; $('#water').value=2.5; $('#vigor').value=50; $('#phase').value='baseline';
     document.querySelector('input[name="view"][value="observed"]').checked=true;
     document.querySelector('input[name="rgbSource"][value="observed"]').checked=true;
     recalculateScenario();
@@ -440,9 +454,11 @@ function initControls() {
 async function load() {
   initControls();
   try {
-    const [metaResponse, binaryResponse] = await Promise.all([fetch('assets/bands.json'),fetch('assets/bands-f32.bin')]);
-    if (!metaResponse.ok || !binaryResponse.ok) throw new Error('影像数据读取失败');
+    const [metaResponse, binaryResponse, lutResponse] = await Promise.all([fetch('assets/bands.json'),fetch('assets/bands-f32.bin'),fetch('assets/atmosphere-6s.json')]);
+    if (!metaResponse.ok || !binaryResponse.ok || !lutResponse.ok) throw new Error('影像或大气模型读取失败');
     meta = await metaResponse.json();
+    atmosphereLut = await lutResponse.json();
+    if (atmosphereLut.bands.join(',') !== BANDS.join(',')) throw new Error('大气模型波段与影像不一致');
     const buffer = await binaryResponse.arrayBuffer();
     const size = meta.width*meta.height;
     if (buffer.byteLength !== size*meta.band_order.length*4) throw new Error('波段文件大小与元数据不一致');
