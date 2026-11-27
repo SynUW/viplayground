@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="使用南京信息工程大学周边 Sentinel-2 影像计算植被指数与自定义波段公式">
+  <title>Sentinel-2 植被指数计算器</title>
+  <link rel="stylesheet" href="simple.css">
+  <script src="calculator.js" defer></script>
+</head>
+<body>
+  <header class="site-header"><div class="wrap"><h1>Sentinel-2 植被指数计算器</h1><p>南京信息工程大学周边 · 2026 年 6–8 月 · 10.02 × 10.02 km · 20 m</p></div></header>
+  <main class="wrap">
+    <div class="notice">使用你提供的多波段 GeoTIFF 逐像元计算。影像的合成年份和方法由你提供；文件本身不含逐景日期、云掩膜或气溶胶图层。</div>
+    <div class="layout">
+      <section class="panel controls" aria-labelledby="compute-title">
+        <h2 id="compute-title">计算公式</h2>
+        <p class="hint">选择常用指数，或直接输入任意由可用波段组成的公式。</p>
+        <div class="presets" id="presets" aria-label="常用指数"></div>
+        <p class="hint">抗大气影响相关预设：EVI、ARVI、SARVI、VARI。它们的作用条件不同，浓烟遮蔽地表时仍可能失效。</p>
+        <label class="field-label" for="formula">波段运算表达式</label>
+        <div class="formula-row"><input id="formula" type="text" spellcheck="false" autocomplete="off" value="(B8-B4)/(B8+B4)" aria-describedby="formula-help"><button id="calculate" type="button">计算</button></div>
+        <p class="hint" id="formula-help">支持 + − × ÷ ^、括号、数字及 sqrt、abs、log、exp、min、max、pow。运算符输入为 <code>+ - * / ^</code>。</p>
+        <div class="band-list"><strong>可用波段</strong><div id="bandButtons"></div></div>
+        <p class="message" id="message" role="status">正在读取影像数据…</p>
+
+        <div class="divider"></div>
+        <h2>情景调整 <small>教学模拟</small></h2>
+        <p class="hint">从原始反射率出发，添加假设的大气层，再按当前公式计算。它是观测情景示意，不是大气校正或烟雾反演。</p>
+        <label class="field-label" for="aerosolType">气溶胶类型</label><select id="aerosolType"><option value="haze">普通霾</option><option value="smoke">野火烟雾</option></select>
+        <div class="slider-field"><label for="aerosol">附加 AOD₅₅₀ <output id="aerosolOut">0.00</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0"><p class="zero-note">0 = 不额外叠加气溶胶；不表示真实大气的 AOD 为 0。</p></div>
+        <div class="slider-field"><label for="water">水汽柱增量 <output id="waterOut">0.0 cm</output></label><input type="range" id="water" min="0" max="6" step="0.1" value="0"><p class="zero-note">0 = 不额外叠加水汽吸收；不表示大气中没有水汽。</p></div>
+        <button class="secondary" id="smokeExample" type="button">载入野火浓烟示例</button>
+        <p class="hint" id="atmosNote">AOD 为 0 时，选择普通霾或野火烟雾不会改变结果。</p>
+        <div class="slider-field"><label for="vigor">植被茂盛程度 <output id="vigorOut">50</output></label><input type="range" id="vigor" min="0" max="100" value="50"><p class="zero-note">50 = 输入影像的参考状态；0 = 模拟较稀疏，不表示没有植被。</p></div>
+        <label class="field-label" for="phase">生长阶段</label><select id="phase"><option value="baseline">夏季参考状态</option><option value="early">生长初期</option><option value="peak">旺盛期</option><option value="late">衰老期</option></select>
+        <button class="secondary" id="reset" type="button">重置情景</button>
+      </section>
+
+      <section class="panel results" aria-labelledby="result-title">
+        <div class="result-header"><div><h2 id="result-title">NDVI 计算结果</h2><p id="resultSubtitle">原始影像</p></div><span class="badge" id="modeBadge">真实影像计算</span></div>
+        <div class="display-tabs" role="group" aria-label="地图内容"><button type="button" id="showIndex" class="active">指数地图</button><button type="button" id="showRgb">RGB 影像</button></div>
+        <div id="rgbControls" class="rgb-controls" hidden>
+          <div class="view-choice" role="group" aria-label="RGB 影像来源"><label><input type="radio" name="rgbSource" value="observed" checked> 输入影像</label><label><input type="radio" name="rgbSource" value="scenario"> 大气与植被情景</label></div>
+          <div class="rgb-presets" role="group" aria-label="常用波段组合"><button type="button" data-rgb="B4,B3,B2" class="active">真彩色 B4/B3/B2</button><button type="button" data-rgb="B8,B4,B3">假彩色 B8/B4/B3</button><button type="button" data-rgb="B11,B8,B4">SWIR B11/B8/B4</button></div>
+          <div class="rgb-selectors"><label>红色通道<select id="redBand"></select></label><label>绿色通道<select id="greenBand"></select></label><label>蓝色通道<select id="blueBand"></select></label></div>
+          <div class="stretch-controls"><label for="stretchLow">拉伸下限 <output id="stretchLowOut">2%</output></label><input type="range" id="stretchLow" min="0" max="20" step="1" value="2"><label for="stretchHigh">拉伸上限 <output id="stretchHighOut">98%</output></label><input type="range" id="stretchHigh" min="80" max="100" step="1" value="98"></div>
+          <p class="hint">两种影像共用输入影像的拉伸范围，便于观察变化。水汽对真彩色可能很弱，可选 SWIR 组合观察。超出范围的值截断。</p>
+        </div>
+        <div class="map-box"><canvas id="map" width="501" height="501" role="img" aria-label="植被指数地图"></canvas><span class="north">N ↑</span></div>
+        <div id="indexBelow"><div class="colorbar"><span id="scaleMin">低</span><div class="ramp-wrap"><div class="ramp" id="indexRamp"></div><span id="zeroMarker" class="zero-marker" hidden>0</span></div><span id="scaleMax">高</span></div>
+          <p class="footnote scale-note">所有指数地图及自定义公式共用 −1～1 色带：低于 −1 或高于 1 的值仅在地图上截断显示，统计值保持原值。</p>
+          <p id="zeroExplanation" class="zero-explanation">NDVI = 0 表示近红外 B8 与红光 B4 的反射率相等；负值表示 B8 &lt; B4，正值表示 B8 &gt; B4。零点不是“没有植被”的判定线。</p>
+          <div class="view-choice" role="group" aria-label="地图显示"><label><input type="radio" name="view" value="observed" checked> 原始影像</label><label><input type="radio" name="view" value="scenario"> 情景结果</label></div>
+          <div class="summary"><div><span>原始中位数</span><strong id="baseMedian">—</strong></div><div><span>情景中位数</span><strong id="scenarioMedian">—</strong></div><div><span>差值</span><strong id="delta">—</strong></div></div>
+          <p class="footnote" id="validCount">有效像元：—</p>
+          <div class="comparison"><h3>大气影响对照</h3><p>同一组植被像元抽样的中位数；只比较同一指数在原始与情景之间的变化。</p><div id="comparisonTable"></div><p id="arviNote"></p></div>
+          <p class="footnote">ARVI 用蓝、红波段构造校正红光项；SARVI 再加入土壤背景项；VARI 只使用可见光。公式来源：<a href="https://modis.gsfc.nasa.gov/sci_team/pubs/abstract.php?id=03667" target="_blank" rel="noreferrer">ARVI</a>、<a href="https://modis.gsfc.nasa.gov/MODIS/LAND/REPORTS/huete.1993.4.pdf" target="_blank" rel="noreferrer">SARVI</a>、<a href="https://calmit.unl.edu/people/agitelson2/pdf/09_RSE-80-2002%289%29-updated.pdf" target="_blank" rel="noreferrer">VARI</a>。</p>
+          <div class="histogram"><h3>数值分布折线图</h3><div class="hist-legend"><span class="hist-original">输入影像</span><span class="hist-scenario">情景结果</span></div><canvas id="histogram" width="560" height="230" role="img" aria-label="输入影像与情景结果的指数值分布折线图"></canvas><p id="histInfo" class="footnote">正在计算分布…</p></div>
+        </div>
+        <p id="rgbInfo" class="footnote" hidden>输入波段组合。</p>
+      </section>
+    </div>
+    <details class="method"><summary>公式与数据说明</summary><div><p>地图由原始文件中的 B2、B3、B4、B5、B6、B7、B8、B8A、B11、B12 十个波段计算。波段值为反射率；输入公式中的常数可直接使用。分母为零或运算无效的像元在图上留空。</p><p>气溶胶的假设光学厚度按波长变化：τ(λ) = AOD₅₅₀ × (λ/550 nm)<sup>−α</sup>，普通霾 α = 1.3、野火烟雾 α = 1.8。先用 exp(−1.5τ) 衰减地表信号并加入简化路径反射，再按波段乘以水汽透过率 exp(−k<sub>水</sub>·水汽增量)。路径反射和水汽系数为教学设定，未经过辐射传输或现场数据标定；整幅图使用同一假设大气层。浓烟遮蔽地表时，计算出的指数不应作为植被状态解读。</p><p>这份 TIFF 没有水汽专用的 B9、AOT、观测角度或逐景影像；无法验证实际水汽、烟雾或合成过程。“茂盛程度”和生长阶段只作用于原始 NDVI &gt; 0.35 的像元。原始影像结果不随控件改变。</p><p>波段与辅助层说明见 <a href="https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S2L2A.html" target="_blank" rel="noreferrer">Copernicus Sentinel-2 L2A 文档</a>；极端野火烟雾的 AOD 量级见 <a href="https://amt.copernicus.org/articles/17/3279/2024/" target="_blank" rel="noreferrer">Atmospheric Measurement Techniques 研究</a>；常用指数公式参考 <a href="https://lpdaac.usgs.gov/documents/2088/HLS_VI_User_Guide_V2.pdf" target="_blank" rel="noreferrer">USGS HLS VI 指南</a>。</p></div></details>
+  </main>
+  <footer class="wrap">数据：NUIST_Sentinel2_Reflectance.tif · 所有公式计算均在浏览器本地完成</footer>
+</body>
+</html>
