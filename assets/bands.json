@@ -1,0 +1,30 @@
+{
+  "width": 501,
+  "height": 501,
+  "band_order": [
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "B8",
+    "B8A",
+    "B11",
+    "B12"
+  ],
+  "dtype": "float32 little-endian band-major",
+  "nodata": "NaN",
+  "resolution_m": [
+    20.0,
+    20.0
+  ],
+  "bounds_m": [
+    657260.0,
+    3559700.0,
+    667280.0,
+    3569720.0
+  ],
+  "crs": "EPSG:32650",
+  "period": "2026-06 to 2026-08; median composite (user provided; not encoded in TIFF metadata)"
+}
