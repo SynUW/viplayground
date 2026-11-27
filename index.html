@@ -6,7 +6,7 @@
   <meta name="description" content="使用南京信息工程大学周边 Sentinel-2 影像计算植被指数与自定义波段公式">
   <title>Sentinel-2 植被指数计算器</title>
   <link rel="stylesheet" href="simple.css">
-  <script src="calculator.js?v=4" defer></script>
+  <script src="calculator.js?v=6s" defer></script>
 </head>
 <body>
   <header class="site-header"><div class="wrap"><h1>Sentinel-2 植被指数计算器</h1></div></header>
@@ -24,13 +24,13 @@
         <p class="message" id="message" role="status">正在读取影像数据…</p>
 
         <div class="divider"></div>
-        <h2>情景调整 <small>教学模拟</small></h2>
-        <p class="hint">从原始反射率出发，添加假设的大气层，再按当前公式计算。</p>
+        <h2>情景调整 <small>6S 大气模拟</small></h2>
+        <p class="hint">从输入地表反射率出发，计算不同大气条件下的观测反射率，再计算指数。</p>
         <label class="field-label" for="aerosolType">气溶胶类型</label><select id="aerosolType"><option value="haze">普通霾</option><option value="smoke">野火烟雾</option></select>
-        <div class="slider-field"><label for="aerosol">附加 AOD₅₅₀ <output id="aerosolOut">0.00</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0"><p class="zero-note">0 = 不额外叠加气溶胶。</p></div>
-        <div class="slider-field"><label for="water">水汽柱增量 <output id="waterOut">0.0 cm</output></label><input type="range" id="water" min="0" max="6" step="0.1" value="0"><p class="zero-note">0 = 不额外叠加水汽吸收。</p></div>
+        <div class="slider-field"><label for="aerosol">AOD₅₅₀ <output id="aerosolOut">0.10</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0.1"></div>
+        <div class="slider-field"><label for="water">水汽柱 <output id="waterOut">2.5 cm</output></label><input type="range" id="water" min="0.5" max="6" step="0.1" value="2.5"></div>
         <button class="secondary" id="smokeExample" type="button">载入野火浓烟示例</button>
-        <p class="hint" id="atmosNote">AOD 为 0 时，选择普通霾或野火烟雾不会改变结果。</p>
+        <p class="hint" id="atmosNote">当前反射率由 6S 大气模型计算。</p>
         <div class="slider-field"><label for="vigor">植被茂盛程度 <output id="vigorOut">50</output></label><input type="range" id="vigor" min="0" max="100" value="50"><p class="zero-note">50 = 输入影像的参考状态；0 = 模拟较稀疏。</p></div>
         <label class="field-label" for="phase">生长阶段</label><select id="phase"><option value="baseline">夏季参考状态</option><option value="early">生长初期</option><option value="peak">旺盛期</option><option value="late">衰老期</option></select>
         <button class="secondary" id="reset" type="button">重置情景</button>
@@ -58,7 +58,7 @@
         <p id="rgbInfo" class="footnote" hidden>输入波段组合。</p>
       </section>
     </div>
-    <details class="method"><summary>公式与数据说明</summary><div><p>地图由原始文件中的 B2、B3、B4、B5、B6、B7、B8、B8A、B11、B12 十个波段计算。波段值为反射率；输入公式中的常数可直接使用。分母为零或运算无效的像元在图上留空。</p><p>气溶胶的假设光学厚度按波长变化：τ(λ) = AOD₅₅₀ × (λ/550 nm)<sup>−α</sup>，普通霾 α = 1.3、野火烟雾 α = 1.8。先用 exp(−1.5τ) 衰减地表信号并加入简化路径反射，再按波段乘以水汽透过率 exp(−k<sub>水</sub>·水汽增量)。路径反射和水汽系数为教学设定，未经过辐射传输或现场数据标定；整幅图使用同一假设大气层。浓烟遮蔽地表时，计算出的指数不应作为植被状态解读。</p><p>这份 TIFF 没有水汽专用的 B9、AOT、观测角度或逐景影像；无法验证实际水汽、烟雾或合成过程。“茂盛程度”和生长阶段只作用于原始 NDVI &gt; 0.35 的像元。原始影像结果不随控件改变。</p><p>波段与辅助层说明见 <a href="https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S2L2A.html" target="_blank" rel="noreferrer">Copernicus Sentinel-2 L2A 文档</a>；极端野火烟雾的 AOD 量级见 <a href="https://amt.copernicus.org/articles/17/3279/2024/" target="_blank" rel="noreferrer">Atmospheric Measurement Techniques 研究</a>；常用指数公式参考 <a href="https://lpdaac.usgs.gov/documents/2088/HLS_VI_User_Guide_V2.pdf" target="_blank" rel="noreferrer">USGS HLS VI 指南</a>。</p></div></details>
+    <details class="method"><summary>公式与数据说明</summary><div><p>地图由原始文件中的 B2、B3、B4、B5、B6、B7、B8、B8A、B11、B12 十个波段计算。输入影像作地表反射率参考；分母为零或运算无效的像元留空。</p><p>大气情景由 6SV1.1 辐射传输模型预计算，使用 Sentinel-2A MSI 波段响应、城市型气溶胶或生物质燃烧烟雾。逐波段观测反射率 = 大气路径反射率 + 总透过项 × 地表反射率 ÷ (1 − 球面反照率 × 地表反射率)。网页在 AOD 和水汽节点间插值；输入值超出 0～1 的像元在大气计算前截到此范围。RGB 和指数使用同一组模拟观测波段。</p><p>代表性几何条件为夏季太阳天顶角 25°、卫星天底观测、地面海拔 20 m，臭氧柱为 0.3 cm·atm。它们并非这份合成影像的逐景观测值。整幅图使用相同的大气条件；“茂盛程度”和生长阶段仍是对原始 NDVI &gt; 0.35 像元的经验情景。高 AOD 下地表被遮蔽时，指数难以用于判读植被。</p><p>模型参考 <a href="https://salsa.umd.edu/files/6S/6S_Manual_Part_1.pdf" target="_blank" rel="noreferrer">6S 用户手册</a>；波段与辅助层参考 <a href="https://sentinels.copernicus.eu/sentinel-data-access/sentinel-products/sentinel-2-data-products/collection-1-level-2a" target="_blank" rel="noreferrer">Copernicus Sentinel-2 L2A 文档</a>。</p></div></details>
   </main>
   <footer class="wrap">数据：NUIST_Sentinel2_Reflectance.tif · 所有公式计算均在浏览器本地完成</footer>
 </body>
