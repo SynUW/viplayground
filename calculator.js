@@ -252,10 +252,6 @@ function drawMap() {
   $('#scaleMin').textContent = format(scale.low);
   $('#scaleMax').textContent = format(scale.high);
   const zeroVisible = true;
-  $('#zeroExplanation').hidden = !['NDVI','ARVI'].includes(currentName);
-  $('#zeroExplanation').textContent = currentName === 'ARVI'
-    ? 'ARVI = 0 表示 B8 与校正红光项 (2×B4−B2) 相等。浓烟下蓝光校正可能失效。'
-    : 'NDVI = 0 表示近红外 B8 与红光 B4 的反射率相等；负值表示 B8 < B4，正值表示 B8 > B4。零点不是“没有植被”的判定线。';
   $('#zeroMarker').hidden = !zeroVisible;
   if (zeroVisible) {
     const position = 100 * (0-scale.low)/(scale.high-scale.low);
