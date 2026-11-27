@@ -344,11 +344,7 @@ function renderAtmosComparison() {
     const median = values => values.length ? values[Math.floor((values.length-1)/2)] : NaN;
     return { name, base:median(original), current:median(scenario), count:original.length };
   });
-  $('#comparisonTable').innerHTML = `<table><thead><tr><th>指数</th><th>原始</th><th>情景</th><th>差值</th></tr></thead><tbody>${rows.map(row => `<tr><th>${row.name}</th><td>${format(row.base)}</td><td>${format(row.current)}</td><td>${format(row.current-row.base)}</td></tr>`).join('')}</tbody></table><small>原始 NDVI &gt; 0.35 的像元中，每 16 个像元抽取 1 个；有效样本约 ${rows[0].count.toLocaleString()} 个。不同指数的数值尺度不可直接比较。</small>`;
-  const ndviChange = Math.abs(rows[0].current-rows[0].base), arviChange = Math.abs(rows[2].current-rows[2].base);
-  $('#arviNote').textContent = scenarioState.aod === 0 && scenarioState.water === 0 && scenarioState.growth === 0 && !scenarioState.late
-    ? '情景参数处于参考状态时，两种影像一致。'
-    : `本次抽样的中位数变化：NDVI ${format(ndviChange)}，ARVI ${format(arviChange)}。ARVI 使用蓝光修正红光，但浓烟下蓝、红光变化未必满足校正假设，变化可能反而更大；所有指数地图使用同一固定色带。`;
+  $('#comparisonTable').innerHTML = `<table><thead><tr><th>指数</th><th>原始</th><th>情景</th><th>差值</th></tr></thead><tbody>${rows.map(row => `<tr><th>${row.name}</th><td>${format(row.base)}</td><td>${format(row.current)}</td><td>${format(row.current-row.base)}</td></tr>`).join('')}</tbody></table><small>原始 NDVI &gt; 0.35 的像元中，每 16 个像元抽取 1 个；有效样本约 ${rows[0].count.toLocaleString()} 个。</small>`;
 }
 
 function recalculateScenario() {
