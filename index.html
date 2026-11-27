@@ -16,7 +16,7 @@
         <h2 id="compute-title">计算公式</h2>
         <p class="hint">选择常用指数，或直接输入任意由可用波段组成的公式。</p>
         <div class="presets" id="presets" aria-label="常用指数"></div>
-        <p class="hint">抗大气影响相关预设：EVI、ARVI、SARVI、AFRI。它们的作用条件不同，浓烟遮蔽地表时仍可能失效。</p>
+        <p class="hint">抗大气影响相关预设：EVI、ARVI、AFRI。它们的作用条件不同，浓烟遮蔽地表时仍可能失效。</p>
         <label class="field-label" for="formula">波段运算表达式</label>
         <div class="formula-row"><input id="formula" type="text" spellcheck="false" autocomplete="off" value="(B8-B4)/(B8+B4)" aria-describedby="formula-help"><button id="calculate" type="button">计算</button></div>
         <p class="hint" id="formula-help">支持 + − × ÷ ^、括号、数字及 sqrt、abs、log、exp、min、max、pow。运算符输入为 <code>+ - * / ^</code>。</p>
@@ -54,7 +54,7 @@
           <div class="summary"><div><span>原始中位数</span><strong id="baseMedian">—</strong></div><div><span>情景中位数</span><strong id="scenarioMedian">—</strong></div><div><span>差值</span><strong id="delta">—</strong></div></div>
           <p class="footnote" id="validCount">有效像元：—</p>
           <div class="comparison"><h3>大气影响对照</h3><p>同一组植被像元抽样的中位数；只比较同一指数在原始与情景之间的变化。</p><div id="comparisonTable"></div><p id="arviNote"></p></div>
-          <p class="footnote">ARVI 用蓝、红波段构造校正红光项；SARVI 再加入土壤背景项；AFRI₁.₆ 用近红外 B8 与短波红外 B11 计算，公式为 (B8−0.66×B11)/(B8+0.66×B11)。公式来源：<a href="https://modis.gsfc.nasa.gov/sci_team/pubs/abstract.php?id=03667" target="_blank" rel="noreferrer">ARVI</a>、<a href="https://modis.gsfc.nasa.gov/MODIS/LAND/REPORTS/huete.1993.4.pdf" target="_blank" rel="noreferrer">SARVI</a>、<a href="https://doi.org/10.1016/S0034-4257(01)00190-0" target="_blank" rel="noreferrer">AFRI</a>。</p>
+          <p class="footnote">ARVI 用蓝、红波段构造校正红光项；AFRI₁.₆ 用近红外 B8 与短波红外 B11 计算，公式为 (B8−0.66×B11)/(B8+0.66×B11)。公式来源：<a href="https://modis.gsfc.nasa.gov/sci_team/pubs/abstract.php?id=03667" target="_blank" rel="noreferrer">ARVI</a>、<a href="https://doi.org/10.1016/S0034-4257(01)00190-0" target="_blank" rel="noreferrer">AFRI</a>。</p>
           <div class="histogram"><h3>数值分布折线图</h3><div class="hist-legend"><span class="hist-original">输入影像</span><span class="hist-scenario">情景结果</span></div><canvas id="histogram" width="560" height="230" role="img" aria-label="输入影像与情景结果的指数值分布折线图"></canvas><p id="histInfo" class="footnote">正在计算分布…</p></div>
         </div>
         <p id="rgbInfo" class="footnote" hidden>输入波段组合。</p>
