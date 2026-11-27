@@ -19,7 +19,7 @@ let meta, bandData, atmosphereLut, vegetation, formulaFn, baseValues, scenarioVa
 let currentName = 'NDVI';
 let displayMode = 'index';
 const sortedBandCache = {};
-let scenarioState = { aod:0.1, water:2.5, growth:0, late:false, optics:{} };
+let scenarioState = { aod:0, water:0, growth:0, late:false, optics:{}, baselineOptics:{} };
 let updateTimer;
 const $ = selector => document.querySelector(selector);
 
@@ -121,9 +121,14 @@ function readBand(name, pixel, scenario) {
   if (!scenario || !Number.isFinite(original)) return original;
   const grow = vegetation[pixel] ? scenarioState.growth : 0;
   const late = vegetation[pixel] && scenarioState.late ? (LATE[name] || 0) : 0;
-  const surface = Math.min(1, Math.max(0, original + GROWTH[name]*grow + late));
+  const adjusted = original + GROWTH[name]*grow + late;
+  if (scenarioState.aod === 0 && scenarioState.water === 0) return adjusted;
+  const surface = Math.min(1, Math.max(0, adjusted));
   const { path, transmission, spherical } = scenarioState.optics[name];
-  return path + transmission * surface / (1 - spherical * surface);
+  const baseline = scenarioState.baselineOptics[name];
+  const simulated = path + transmission * surface / (1 - spherical * surface);
+  const clear = baseline.path + baseline.transmission * surface / (1 - baseline.spherical * surface);
+  return adjusted + simulated - clear;
 }
 
 function axisWeights(nodes, value) {
@@ -162,11 +167,14 @@ function readScenarioState() {
   const shift = { baseline:0, early:-.70, peak:.45, late:-.80 }[phase];
   const growth = Math.max(-1, Math.min(1, ((+$('#vigor').value - 50)/50)*.65 + shift));
   const smoke = $('#aerosolType').value === 'smoke';
-  const optics = interpolateOptics(smoke ? 'smoke' : 'haze', aod, water);
-  scenarioState = { aod, water, growth, late:phase==='late', optics };
+  const optics = interpolateOptics(smoke ? 'smoke' : 'haze', aod, .5 + water);
+  const baselineOptics = interpolateOptics('haze', 0, .5);
+  scenarioState = { aod, water, growth, late:phase==='late', optics, baselineOptics };
   $('#atmosNote').textContent = aod >= 2
     ? '高 AOD 时地表信号可能被遮蔽，植被指数难以解释。'
-    : '当前反射率由 6S 大气模型计算。';
+    : aod === 0 && water === 0
+      ? '无额外大气干扰：情景波段与输入波段相同。'
+      : '使用 6S 模拟相对于无额外干扰情景的反射率变化。';
 }
 
 function calculatePixels(fn, scenario) {
@@ -420,13 +428,13 @@ function initControls() {
   document.querySelectorAll('input[name="view"]').forEach(radio => radio.addEventListener('change', drawMap));
   document.querySelectorAll('input[name="rgbSource"]').forEach(radio => radio.addEventListener('change', drawRgb));
   $('#reset').addEventListener('click', () => {
-    $('#aerosolType').value='haze'; $('#aerosol').value=.1; $('#water').value=2.5; $('#vigor').value=50; $('#phase').value='baseline';
+    $('#aerosolType').value='haze'; $('#aerosol').value=0; $('#water').value=0; $('#vigor').value=50; $('#phase').value='baseline';
     document.querySelector('input[name="view"][value="observed"]').checked=true;
     document.querySelector('input[name="rgbSource"][value="observed"]').checked=true;
     recalculateScenario();
   });
   $('#smokeExample').addEventListener('click', () => {
-    $('#aerosolType').value='smoke'; $('#aerosol').value=2.5; $('#water').value=3;
+    $('#aerosolType').value='smoke'; $('#aerosol').value=2.5; $('#water').value=2.5;
     document.querySelector('input[name="view"][value="scenario"]').checked=true;
     document.querySelector('input[name="rgbSource"][value="scenario"]').checked=true;
     recalculateScenario();
