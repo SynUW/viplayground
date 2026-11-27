@@ -6,7 +6,7 @@
   <meta name="description" content="使用南京信息工程大学周边 Sentinel-2 影像计算植被指数与自定义波段公式">
   <title>Sentinel-2 植被指数计算器</title>
   <link rel="stylesheet" href="simple.css">
-  <script src="calculator.js?v=6s" defer></script>
+  <script src="calculator.js?v=baseline-zero" defer></script>
 </head>
 <body>
   <header class="site-header"><div class="wrap"><h1>Sentinel-2 植被指数计算器</h1></div></header>
@@ -25,12 +25,12 @@
 
         <div class="divider"></div>
         <h2>情景调整 <small>6S 大气模拟</small></h2>
-        <p class="hint">从输入地表反射率出发，计算不同大气条件下的观测反射率，再计算指数。</p>
+        <p class="hint">默认没有额外大气干扰，原始值与情景值相同；调整参数后显示 6S 模拟的变化。</p>
         <label class="field-label" for="aerosolType">气溶胶类型</label><select id="aerosolType"><option value="haze">普通霾</option><option value="smoke">野火烟雾</option></select>
-        <div class="slider-field"><label for="aerosol">AOD₅₅₀ <output id="aerosolOut">0.10</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0.1"></div>
-        <div class="slider-field"><label for="water">水汽柱 <output id="waterOut">2.5 cm</output></label><input type="range" id="water" min="0.5" max="6" step="0.1" value="2.5"></div>
+        <div class="slider-field"><label for="aerosol">额外 AOD₅₅₀ <output id="aerosolOut">0.00</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0"></div>
+        <div class="slider-field"><label for="water">水汽柱增量 <output id="waterOut">0.0 cm</output></label><input type="range" id="water" min="0" max="5.5" step="0.1" value="0"></div>
         <button class="secondary" id="smokeExample" type="button">载入野火浓烟示例</button>
-        <p class="hint" id="atmosNote">当前反射率由 6S 大气模型计算。</p>
+        <p class="hint" id="atmosNote">无额外大气干扰：情景波段与输入波段相同。</p>
         <div class="slider-field"><label for="vigor">植被茂盛程度 <output id="vigorOut">50</output></label><input type="range" id="vigor" min="0" max="100" value="50"><p class="zero-note">50 = 输入影像的参考状态；0 = 模拟较稀疏。</p></div>
         <label class="field-label" for="phase">生长阶段</label><select id="phase"><option value="baseline">夏季参考状态</option><option value="early">生长初期</option><option value="peak">旺盛期</option><option value="late">衰老期</option></select>
         <button class="secondary" id="reset" type="button">重置情景</button>
@@ -58,7 +58,7 @@
         <p id="rgbInfo" class="footnote" hidden>输入波段组合。</p>
       </section>
     </div>
-    <details class="method"><summary>公式与数据说明</summary><div><p>地图由原始文件中的 B2、B3、B4、B5、B6、B7、B8、B8A、B11、B12 十个波段计算。输入影像作地表反射率参考；分母为零或运算无效的像元留空。</p><p>大气情景由 6SV1.1 辐射传输模型预计算，使用 Sentinel-2A MSI 波段响应、城市型气溶胶或生物质燃烧烟雾。逐波段观测反射率 = 大气路径反射率 + 总透过项 × 地表反射率 ÷ (1 − 球面反照率 × 地表反射率)。网页在 AOD 和水汽节点间插值；输入值超出 0～1 的像元在大气计算前截到此范围。RGB 和指数使用同一组模拟观测波段。</p><p>代表性几何条件为夏季太阳天顶角 25°、卫星天底观测、地面海拔 20 m，臭氧柱为 0.3 cm·atm。它们并非这份合成影像的逐景观测值。整幅图使用相同的大气条件；“茂盛程度”和生长阶段仍是对原始 NDVI &gt; 0.35 像元的经验情景。高 AOD 下地表被遮蔽时，指数难以用于判读植被。</p><p>模型参考 <a href="https://salsa.umd.edu/files/6S/6S_Manual_Part_1.pdf" target="_blank" rel="noreferrer">6S 用户手册</a>；波段与辅助层参考 <a href="https://sentinels.copernicus.eu/sentinel-data-access/sentinel-products/sentinel-2-data-products/collection-1-level-2a" target="_blank" rel="noreferrer">Copernicus Sentinel-2 L2A 文档</a>。</p></div></details>
+    <details class="method"><summary>公式与数据说明</summary><div><p>地图由原始文件中的 B2、B3、B4、B5、B6、B7、B8、B8A、B11、B12 十个波段计算。输入影像作地表反射率参考；分母为零或运算无效的像元留空。</p><p>额外 AOD 和水汽柱增量均为 0 时，情景波段直接等于输入波段。调整参数后，网页用 6SV1.1 辐射传输模型计算相对于参考大气的反射率变化，并叠加到输入波段。6S 使用 Sentinel-2A MSI 波段响应、城市型气溶胶或生物质燃烧烟雾；参考大气为 AOD 0、水汽柱 0.5 cm，滑块显示相对此值的水汽增量。模型在 AOD 和水汽节点间插值，输入值超出 0～1 的像元仅在大气变化量计算中截到此范围。RGB 和指数使用同一组情景波段。</p><p>代表性几何条件为夏季太阳天顶角 25°、卫星天底观测、地面海拔 20 m，臭氧柱为 0.3 cm·atm。它们并非这份合成影像的逐景观测值。整幅图使用相同的大气条件；“茂盛程度”和生长阶段仍是对原始 NDVI &gt; 0.35 像元的经验情景。高 AOD 下地表被遮蔽时，指数难以用于判读植被。</p><p>模型参考 <a href="https://salsa.umd.edu/files/6S/6S_Manual_Part_1.pdf" target="_blank" rel="noreferrer">6S 用户手册</a>；波段与辅助层参考 <a href="https://sentinels.copernicus.eu/sentinel-data-access/sentinel-products/sentinel-2-data-products/collection-1-level-2a" target="_blank" rel="noreferrer">Copernicus Sentinel-2 L2A 文档</a>。</p></div></details>
   </main>
   <footer class="wrap">数据：NUIST_Sentinel2_Reflectance.tif · 所有公式计算均在浏览器本地完成</footer>
 </body>
