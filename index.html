@@ -6,7 +6,7 @@
   <meta name="description" content="使用南京信息工程大学周边 Sentinel-2 影像计算植被指数与自定义波段公式">
   <title>Sentinel-2 植被指数计算器</title>
   <link rel="stylesheet" href="simple.css">
-  <script src="calculator.js?v=2" defer></script>
+  <script src="calculator.js?v=3" defer></script>
 </head>
 <body>
   <header class="site-header"><div class="wrap"><h1>Sentinel-2 植被指数计算器</h1></div></header>
@@ -49,7 +49,6 @@
         <div class="map-box"><canvas id="map" width="501" height="501" role="img" aria-label="植被指数地图"></canvas><span class="north">N ↑</span></div>
         <div id="indexBelow"><div class="colorbar"><span id="scaleMin">低</span><div class="ramp-wrap"><div class="ramp" id="indexRamp"></div><span id="zeroMarker" class="zero-marker" hidden>0</span></div><span id="scaleMax">高</span></div>
           <p class="footnote scale-note">所有指数地图及自定义公式共用 −1～1 色带：低于 −1 或高于 1 的值仅在地图上截断显示，统计值保持原值。</p>
-          <p id="zeroExplanation" class="zero-explanation">NDVI = 0 表示近红外 B8 与红光 B4 的反射率相等；负值表示 B8 &lt; B4，正值表示 B8 &gt; B4。零点不是“没有植被”的判定线。</p>
           <div class="view-choice" role="group" aria-label="地图显示"><label><input type="radio" name="view" value="observed" checked> 原始影像</label><label><input type="radio" name="view" value="scenario"> 情景结果</label></div>
           <div class="summary"><div><span>原始中位数</span><strong id="baseMedian">—</strong></div><div><span>情景中位数</span><strong id="scenarioMedian">—</strong></div><div><span>差值</span><strong id="delta">—</strong></div></div>
           <p class="footnote" id="validCount">有效像元：—</p>
