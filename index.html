@@ -27,11 +27,11 @@
         <h2>情景调整 <small>教学模拟</small></h2>
         <p class="hint">从原始反射率出发，添加假设的大气层，再按当前公式计算。</p>
         <label class="field-label" for="aerosolType">气溶胶类型</label><select id="aerosolType"><option value="haze">普通霾</option><option value="smoke">野火烟雾</option></select>
-        <div class="slider-field"><label for="aerosol">附加 AOD₅₅₀ <output id="aerosolOut">0.00</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0"><p class="zero-note">0 = 不额外叠加气溶胶；不表示真实大气的 AOD 为 0。</p></div>
-        <div class="slider-field"><label for="water">水汽柱增量 <output id="waterOut">0.0 cm</output></label><input type="range" id="water" min="0" max="6" step="0.1" value="0"><p class="zero-note">0 = 不额外叠加水汽吸收；不表示大气中没有水汽。</p></div>
+        <div class="slider-field"><label for="aerosol">附加 AOD₅₅₀ <output id="aerosolOut">0.00</output></label><input type="range" id="aerosol" min="0" max="3.5" step="0.05" value="0"><p class="zero-note">0 = 不额外叠加气溶胶。</p></div>
+        <div class="slider-field"><label for="water">水汽柱增量 <output id="waterOut">0.0 cm</output></label><input type="range" id="water" min="0" max="6" step="0.1" value="0"><p class="zero-note">0 = 不额外叠加水汽吸收。</p></div>
         <button class="secondary" id="smokeExample" type="button">载入野火浓烟示例</button>
         <p class="hint" id="atmosNote">AOD 为 0 时，选择普通霾或野火烟雾不会改变结果。</p>
-        <div class="slider-field"><label for="vigor">植被茂盛程度 <output id="vigorOut">50</output></label><input type="range" id="vigor" min="0" max="100" value="50"><p class="zero-note">50 = 输入影像的参考状态；0 = 模拟较稀疏，不表示没有植被。</p></div>
+        <div class="slider-field"><label for="vigor">植被茂盛程度 <output id="vigorOut">50</output></label><input type="range" id="vigor" min="0" max="100" value="50"><p class="zero-note">50 = 输入影像的参考状态；0 = 模拟较稀疏。</p></div>
         <label class="field-label" for="phase">生长阶段</label><select id="phase"><option value="baseline">夏季参考状态</option><option value="early">生长初期</option><option value="peak">旺盛期</option><option value="late">衰老期</option></select>
         <button class="secondary" id="reset" type="button">重置情景</button>
       </section>
